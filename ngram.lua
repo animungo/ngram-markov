@@ -5,6 +5,30 @@ function file_exists(file)
   return f ~= nil
 end
 
+-- Reduce the values of a table, http://stackoverflow.com/questions/8695378/how-to-sum-a-table-of-numbers-in-lua
+function sum(t)
+  local sum = 0
+  for k, v in pairs(t) do
+    sum = sum + v
+  end
+  
+  return sum
+end
+
+table.reduce = function (list, fn)
+  local acc
+    
+  for k, v in ipairs(list) do
+    if 1 == k then
+      acc = v
+    else
+      acc = fn(acc, v)
+    end
+  end
+    
+  return acc
+end
+
 function register_gram_with_predecessor(table, predecessor, gram)
   if table[predecessor] ~= nil then
     if table[predecessor][gram] ~= nil then
@@ -39,10 +63,10 @@ if arg[1] == nil or file_exists(arg[1]) == false then
 end
 
 -- Set input to specific file
-io.input('input.txt');
+io.input(arg[1])
 
 -- Read complete file and remove linebreaks
-content = string.gsub(io.read('*all'), '\n', '')
+content = string.gsub(io.read('*all'), '\n', ' ')
 
 start = 1
 starters = {}
@@ -51,6 +75,7 @@ grams = {}
 lastgram3 = nil
 lastgram2 = nil
 
+-- Extract grams and starters (first chars)
 while start < string.len(content) do
   gram3 = string.sub(content, start, start + 2)
   gram2 = string.sub(gram3, 1, 2)
@@ -69,11 +94,35 @@ while start < string.len(content) do
   register_gram_with_predecessor(starters, starter, gram3)
   register_gram_with_predecessor(starters, starter, gram2)
     
-  lastgram3 = gram3
-  lastgram2 = gram2
+  if start > 3 then
+    lastgram3 = string.sub(content, start - 2, start)
+  end
+  
+  if start > 2 then
+    lastgram2 = string.sub(content, start - 1, start)
+  end
   
   start = start + 1
 end
 
 output_table('starters', starters)
 output_table('grams', grams)
+
+possible_grams = starters['L']
+
+for i = 1, 1000 do
+  limit = sum(possible_grams)
+  
+  random = math.random(limit)
+  summed_values = 0
+  
+  for gram, value in pairs(possible_grams) do
+    summed_values = summed_values + value
+    
+    if random <= summed_values then
+      io.write(gram)
+      possible_grams = grams[gram]
+      break
+    end
+  end
+end
