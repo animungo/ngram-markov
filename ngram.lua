@@ -5,21 +5,31 @@ function file_exists(file)
   return f ~= nil
 end
 
-grams = {}
-
--- Extract ngrams from string
-function ngram(string, start, length)
-  gram = string.sub(string, start, start + length - 1)
-  
-  if grams[gram] ~= nil then
-    grams[gram] = grams[gram] + 1
+function register_gram_with_predecessor(table, predecessor, gram)
+  if table[predecessor] ~= nil then
+    if table[predecessor][gram] ~= nil then
+      table[predecessor][gram] = table[predecessor][gram] + 1
+    else
+      table[predecessor][gram] = 1
+    end
   else
-    grams[gram] = 1
+    table[predecessor] = {}
+    table[predecessor][gram] = 1
+  end
+end
+
+function output_table(filename, table)
+  io.output(filename)
+  
+  for predecessor, grams in pairs(table) do
+    io.write(predecessor .. ':\n')
+    
+    for gram, value in pairs(grams) do
+      io.write('  ' .. gram .. ': ' .. value .. '\n')
+    end
   end
   
-  if string.len(string) > start + length then
-    ngram(string, start + 1, length)
-  end
+  io.output(io.stdout)
 end
 
 -- Check if script is used correctly
@@ -34,8 +44,36 @@ io.input('input.txt');
 -- Read complete file and remove linebreaks
 content = string.gsub(io.read('*all'), '\n', '')
 
-ngram(content, 1, 2)
+start = 1
+starters = {}
+grams = {}
 
-for key,value in pairs(grams) do
-  io.write(key .. ' ' .. value .. '\n')
+lastgram3 = nil
+lastgram2 = nil
+
+while start < string.len(content) do
+  gram3 = string.sub(content, start, start + 2)
+  gram2 = string.sub(gram3, 1, 2)
+  starter = string.sub(gram2, 1, 1)
+  
+  if lastgram3 ~= nil then
+    register_gram_with_predecessor(grams, lastgram3, gram3)
+    register_gram_with_predecessor(grams, lastgram3, gram2)
+  end
+  
+  if lastgram2 ~= nil then
+    register_gram_with_predecessor(grams, lastgram2, gram3)
+    register_gram_with_predecessor(grams, lastgram2, gram2)
+  end
+  
+  register_gram_with_predecessor(starters, starter, gram3)
+  register_gram_with_predecessor(starters, starter, gram2)
+    
+  lastgram3 = gram3
+  lastgram2 = gram2
+  
+  start = start + 1
 end
+
+output_table('starters', starters)
+output_table('grams', grams)
